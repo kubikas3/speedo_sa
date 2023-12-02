@@ -6,9 +6,7 @@ void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeed)
 {
     if (pVehicle)
     {
-        pSpeed->x = *(float *)(pVehicle + 72);
-        pSpeed->y = *(float *)(pVehicle + 76);
-        pSpeed->z = *(float *)(pVehicle + 80);
+        *pSpeed = *(CVector *)(pVehicle + 72);
     }
 }
 
