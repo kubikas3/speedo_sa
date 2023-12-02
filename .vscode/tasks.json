@@ -1,0 +1,50 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "_Build",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Unrestricted",
+        "-NoProfile",
+        "-File",
+        "build.ps1"
+      ],
+      "presentation": {
+        "echo": false,
+        "clear": true,
+        "showReuseMessage": false,
+      }
+    },
+    {
+      "label": "Push",
+      "type": "shell",
+      "command": "adb",
+      "args": [
+        "push",
+        "build/libs/armeabi-v7a/libSpeedo.so",
+        "/storage/emulated/0/Android/data/com.rockstargames.gtasa/mods"
+      ],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": false,
+      }
+    },
+    {
+      "label": "Build",
+      "type": "shell",
+      "group": { "kind": "build", "isDefault": true },
+      "command": "echo Done",
+      "dependsOrder": "sequence",
+      "dependsOn": ["_Build", "Push"],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": false
+      }
+    }
+  ]
+}
