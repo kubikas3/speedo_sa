@@ -21,7 +21,7 @@ jobs:
         local-cache: true
 
     - name: Build
-      run: ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk NDK_DEBUG=0 -j12
+      run: ndk-build NDK_PROJECT_PATH=./build APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk NDK_DEBUG=0 -j12
 
     - name: Upload
       uses: actions/upload-artifact@v3
