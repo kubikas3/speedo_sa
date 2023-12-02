@@ -28,11 +28,3 @@ jobs:
       with:
         name: build
         path: ./build
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ./build/libs/armeabi-v7a/*.so
-        tag_name: v${{ github.run_number }}
-        title: Release ${{ github.run_number }}
-        token: ${{ secrets.GITHUB_TOKEN }}
