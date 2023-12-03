@@ -2,17 +2,15 @@
 #include <mod/logger.h>
 #include <mod/config.h>
 #include "globals.h"
-#include "game_sa/rw/RenderWare.h"
 #include "game_sa/common.h"
 #include "game_sa/CRGBA.h"
 #include "game_sa/CRect.h"
-#include "game_sa/CPhysical.h"
 #include "game_sa/CSprite2d.h"
 #include "utils/texture.h"
 #include "utils/vehicle.h"
 #include "utils/widget.h"
 
-MYMOD(net.kubikas3.speedo, Speedo, 1.1, kubikas3)
+MYMOD(net.kubikas3.speedo, Speedo, 1.2, kubikas3)
 
 BEGIN_DEPLIST()
 ADD_DEPENDENCY_VER(net.rusjj.aml, 1.1)
@@ -33,10 +31,10 @@ DECL_HOOK(void, RadarLoadTextures, void *self)
     logger->Info("Loading sprites");
 
     pDialSprite = new CSprite2d;
-    pDialSprite->m_pRwTexture = (RwTexture *)LoadTextureFromDB("txd", "sspeed");
+    pDialSprite->m_pRwTexture = LoadTextureFromPNG("texture/speed", "sspeed");
 
     pArrowSprite = new CSprite2d;
-    pArrowSprite->m_pRwTexture = (RwTexture *)LoadTextureFromDB("txd", "sarrow");
+    pArrowSprite->m_pRwTexture = LoadTextureFromPNG("texture/speed", "sarrow");
 
     logger->Info("Sprites loaded successfully");
 

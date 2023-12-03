@@ -1,6 +1,7 @@
 #include <mod/logger.h>
+#include "texture.h"
+#include "invoke.h"
 #include "../globals.h"
-#include "../utils/invoke.h"
 
 uintptr_t GetTexture(const char *textureName)
 {
@@ -41,4 +42,49 @@ uintptr_t LoadTextureFromDB(const char *dbName, const char *textureName)
 	Invoke::Function<void, uintptr_t>(g_pLibGTASA + 0x1E9C80 + 1, dbHandle);
 
 	return pRwTexture;
+}
+
+RwTexture *LoadTextureFromPNG(const char *path, const char *name)
+{
+	char file[512];
+	int w, h, d, f;
+	RwTexture *pTexture = nullptr;
+
+	sprintf(file, "%s/%s.png", path, name);
+
+	RwImage *pImage = RtPNGImageRead(file);
+
+	if (!pImage)
+	{
+		logger->Error("Failed to read %s image", name);
+	}
+
+	RwImageFindRasterFormat(pImage, rwRASTERTYPETEXTURE, &w, &h, &d, &f);
+	RwRaster *pRaster = RwRasterCreate(w, h, d, f);
+
+	if (!pRaster)
+	{
+		logger->Error("Failed to create raster for %s", name);
+	}
+
+	RwRasterSetFromImage(pRaster, pImage);
+	pTexture = RwTextureCreate(pRaster);
+
+	if (!pTexture)
+	{
+		logger->Error("Failed to create texture from %s", name);
+	}
+
+	RwTextureSetName(pTexture, name);
+
+	if ((pTexture->raster->cFormat & 0x80) == 0)
+		RwTextureSetFilterMode(pTexture, rwFILTERLINEAR);
+	else
+		RwTextureSetFilterMode(pTexture, rwFILTERLINEARMIPLINEAR);
+
+	RwTextureSetAddressing(pTexture, rwTEXTUREADDRESSWRAP);
+
+	RwImageDestroy(pImage);
+
+	return pTexture;
 }

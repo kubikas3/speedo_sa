@@ -1,6 +1,6 @@
 #pragma once
 #include <cmath>
-#include "rw/RenderWare.h"
+#include "RenderWare.h"
 
 class CVector
 {

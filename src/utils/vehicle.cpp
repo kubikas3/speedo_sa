@@ -1,6 +1,5 @@
 #include "vehicle.h"
 #include "../globals.h"
-#include "../utils/invoke.h"
 
 void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeed)
 {
