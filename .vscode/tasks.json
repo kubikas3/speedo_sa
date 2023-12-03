@@ -4,24 +4,38 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "_Build",
+      "label": "clean",
       "type": "shell",
-      "command": "powershell",
+      "command": "${config:ndkHome}/build/ndk-build",
       "args": [
-        "-ExecutionPolicy",
-        "Unrestricted",
-        "-NoProfile",
-        "-File",
-        "build.ps1"
+        "clean",
+        "NDK_PROJECT_PATH=${workspaceFolder}/build",
+        "APP_BUILD_SCRIPT=${workspaceFolder}/Android.mk",
+        "NDK_APPLICATION_MK=${workspaceFolder}/Application.mk"
       ],
       "presentation": {
         "echo": false,
-        "clear": true,
         "showReuseMessage": false,
+        "clear": true
       }
     },
     {
-      "label": "Push",
+      "label": "build",
+      "type": "shell",
+      "command": "${config:ndkHome}/build/ndk-build",
+      "args": [
+        "NDK_PROJECT_PATH=${workspaceFolder}/build",
+        "APP_BUILD_SCRIPT=${workspaceFolder}/Android.mk",
+        "NDK_APPLICATION_MK=${workspaceFolder}/Application.mk",
+        "NDK_DEBUG=0"
+      ],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "push",
       "type": "shell",
       "command": "adb",
       "args": [
@@ -31,16 +45,16 @@
       ],
       "presentation": {
         "echo": false,
-        "showReuseMessage": false,
+        "showReuseMessage": false
       }
     },
     {
-      "label": "Build",
+      "label": "clean build and push",
       "type": "shell",
       "group": { "kind": "build", "isDefault": true },
       "command": "echo Done",
       "dependsOrder": "sequence",
-      "dependsOn": ["_Build", "Push"],
+      "dependsOn": ["clean", "build", "push"],
       "presentation": {
         "echo": false,
         "showReuseMessage": false
