@@ -21,7 +21,6 @@ NEEDGAME(com.rockstargames.gtasa)
 const unsigned int RADAR_WIDGET_ID = 161;
 const float PI = 3.141592653589793f;
 const float SPEEDOMETER_MULTIPLIER = 150.0f / 250.0f; // arc angle / max value
-const CRGBA WHITE(255, 255, 255);
 
 CSprite2d *pDialSprite;
 CSprite2d *pArrowSprite;
@@ -31,10 +30,10 @@ DECL_HOOK(void, RadarLoadTextures, void *self)
     logger->Info("Loading sprites");
 
     pDialSprite = new CSprite2d;
-    pDialSprite->m_pRwTexture = LoadTextureFromPNG("texture/speed", "sspeed");
+    pDialSprite->m_pRwTexture = LoadTextureFromPNG("texture/speedo", "sspeed");
 
     pArrowSprite = new CSprite2d;
-    pArrowSprite->m_pRwTexture = LoadTextureFromPNG("texture/speed", "sarrow");
+    pArrowSprite->m_pRwTexture = LoadTextureFromPNG("texture/speedo", "sarrow");
 
     logger->Info("Sprites loaded successfully");
 
@@ -69,8 +68,11 @@ DECL_HOOK(void, DrawMap, void *self)
             float x = radarRect.left + (radarWidth - speedoWidth) / 2;
             float y = radarRect.top + (radarHeight - speedoHeight) / 2;
 
-            pDialSprite->Draw(x, y, speedoWidth, speedoHeight, WHITE);
-            pArrowSprite->Draw(x, y, speedoWidth, speedoHeight, -angle, 0.5f, 0.5f, WHITE);
+            CRGBA color(255, 255, 255, 255);
+            GetWidgetAlpha(RADAR_WIDGET_ID, &color.a);
+
+            pDialSprite->Draw(x, y, speedoWidth, speedoHeight, color);
+            pArrowSprite->Draw(x, y, speedoWidth, speedoHeight, -angle, 0.5f, 0.5f, color);
         }
     }
 
