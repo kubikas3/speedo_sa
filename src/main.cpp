@@ -140,32 +140,28 @@ DECL_HOOK(void, DrawMap, void *self)
         eVehicleType vehicleSubClass;
         GetVehicleSubClass(pVehicle, &vehicleSubClass);
 
-        if (vehicleSubClass == VEHICLE_AUTOMOBILE || vehicleSubClass == VEHICLE_MTRUCK ||
-            vehicleSubClass == VEHICLE_BIKE || vehicleSubClass == VEHICLE_QUAD)
-        {
-            CVector speedVec;
-            GetVehicleSpeedVec(pVehicle, &speedVec);
+        CVector speedVec;
+        GetVehicleSpeedVec(pVehicle, &speedVec);
 
-            float speedKmph = speedVec.Magnitude() * 180;
-            float angle = SPEEDOMETER_MULTIPLIER * speedKmph / 180 * PI;
+        float speedKmph = speedVec.Magnitude() * 180;
+        float angle = SPEEDOMETER_MULTIPLIER * speedKmph / 180 * PI;
 
-            CRect radarRect;
-            GetWidgetRect(ppWidgets[RADAR_WIDGET_ID], &radarRect);
+        CRect radarRect;
+        GetWidgetScreenRect(ppWidgets[RADAR_WIDGET_ID], &radarRect);
 
-            float radarWidth = radarRect.right - radarRect.left;
-            float radarHeight = radarRect.bottom - radarRect.top;
-            float speedoWidth = radarWidth * 1.9f;
-            float speedoHeight = radarHeight * 1.9f;
-            float x = radarRect.left + (radarWidth - speedoWidth) / 2;
-            float y = radarRect.top + (radarHeight - speedoHeight) / 2;
+        float radarWidth = radarRect.right - radarRect.left;
+        float radarHeight = radarRect.bottom - radarRect.top;
+        float speedoWidth = radarWidth * 1.9f;
+        float speedoHeight = radarHeight * 1.9f;
+        float x = radarRect.left + (radarWidth - speedoWidth) / 2;
+        float y = radarRect.top + (radarHeight - speedoHeight) / 2;
 
-            CRGBA color(255, 255, 255, 255);
-            GetWidgetAlpha(ppWidgets[RADAR_WIDGET_ID], &color.a);
-            RwInt32 colorInt = color.ToIntARGB();
+        CRGBA color(255, 255, 255, 255);
+        GetWidgetAlpha(ppWidgets[RADAR_WIDGET_ID], &color.a);
+        RwInt32 colorInt = color.ToIntARGB();
 
-            DrawTexture(pDialTexture, colorInt, x, y, speedoWidth, speedoHeight);
-            DrawTexture(pArrowTexture, colorInt, x, y, speedoWidth, speedoHeight, -angle);
-        }
+        DrawTexture(pDialTexture, colorInt, x, y, speedoWidth, speedoHeight);
+        DrawTexture(pArrowTexture, colorInt, x, y, speedoWidth, speedoHeight, -angle);
     }
 
     return DrawMap(self);

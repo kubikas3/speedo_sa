@@ -1,10 +1,9 @@
 #pragma once
+#include "rw/rwcore.h"
 
-class CVector
+class CVector : RwV3d
 {
 public:
-    float x, y, z;
-
     CVector();
     CVector(float X, float Y, float Z);
 
