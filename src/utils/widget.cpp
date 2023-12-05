@@ -1,7 +1,7 @@
 #include "widget.h"
 #include <cstdint>
 
-void GetWidgetRect(uintptr_t pWidget, CRect *pWidgetRect)
+void GetWidgetScreenRect(uintptr_t pWidget, CRect *pWidgetRect)
 {
     *pWidgetRect = *(CRect *)(pWidget + 0x20);
 }

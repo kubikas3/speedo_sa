@@ -23,6 +23,7 @@ RwTexture *(*RwTextureCreate)(RwRaster *raster);
 int (*RwTextureDestroy)(RwTexture *texture);
 RwTexture *(*RwTextureSetName)(RwTexture *texture, char const *name);
 
+const unsigned int HORN_WIDGET_ID = 7;
 const unsigned int RADAR_WIDGET_ID = 161;
 const float PI = 3.141592653589793f;
 const float SPEEDOMETER_MULTIPLIER = 150.0f / 250.0f; // arc angle / max value

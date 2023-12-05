@@ -4,7 +4,7 @@ void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeed)
 {
     if (pVehicle)
     {
-        *pSpeed = *(CVector *)(pVehicle + 72);
+        *pSpeed = *(CVector *)(pVehicle + 0x48);
     }
 }
 

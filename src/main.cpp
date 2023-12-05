@@ -150,7 +150,7 @@ DECL_HOOK(void, DrawMap, void *self)
             float angle = SPEEDOMETER_MULTIPLIER * speedKmph / 180 * PI;
 
             CRect radarRect;
-            GetWidgetRect(ppWidgets[RADAR_WIDGET_ID], &radarRect);
+            GetWidgetScreenRect(ppWidgets[RADAR_WIDGET_ID], &radarRect);
 
             float radarWidth = radarRect.right - radarRect.left;
             float radarHeight = radarRect.bottom - radarRect.top;
@@ -160,7 +160,7 @@ DECL_HOOK(void, DrawMap, void *self)
             float y = radarRect.top + (radarHeight - speedoHeight) / 2;
 
             CRGBA color(255, 255, 255, 255);
-            GetWidgetAlpha(ppWidgets[RADAR_WIDGET_ID], &color.a);
+            GetWidgetAlpha(ppWidgets[HORN_WIDGET_ID], &color.alpha);
             RwInt32 colorInt = color.ToIntARGB();
 
             DrawTexture(pDialTexture, colorInt, x, y, speedoWidth, speedoHeight);
