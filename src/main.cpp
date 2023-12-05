@@ -8,7 +8,7 @@
 #include "utils/vehicle.h"
 #include "utils/widget.h"
 
-MYMOD(net.kubikas3.speedo, Speedo, 1.2, kubikas3)
+MYMOD(net.kubikas3.speedo, Speedo, 1.3, kubikas3)
 
 BEGIN_DEPLIST()
 ADD_DEPENDENCY_VER(net.rusjj.aml, 1.1)
