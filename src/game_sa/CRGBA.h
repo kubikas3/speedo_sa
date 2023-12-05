@@ -1,13 +1,9 @@
 #pragma once
+#include "rw/rwcore.h"
 
-class CRGBA
+class CRGBA : public RwRGBA
 {
 public:
-    unsigned char r;
-    unsigned char g;
-    unsigned char b;
-    unsigned char a;
-
     CRGBA(unsigned char red, unsigned char green, unsigned char blue);
     CRGBA(unsigned char red, unsigned char green, unsigned char blue, unsigned char alpha);
     CRGBA(CRGBA const &rhs);

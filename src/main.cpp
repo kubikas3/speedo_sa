@@ -160,7 +160,7 @@ DECL_HOOK(void, DrawMap, void *self)
             float y = radarRect.top + (radarHeight - speedoHeight) / 2;
 
             CRGBA color(255, 255, 255, 255);
-            GetWidgetAlpha(ppWidgets[RADAR_WIDGET_ID], &color.a);
+            GetWidgetAlpha(ppWidgets[HORN_WIDGET_ID], &color.alpha);
             RwInt32 colorInt = color.ToIntARGB();
 
             DrawTexture(pDialTexture, colorInt, x, y, speedoWidth, speedoHeight);
