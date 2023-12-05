@@ -1,5 +1,4 @@
 #include "vehicle.h"
-#include "../globals.h"
 
 void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeed)
 {

@@ -1,18 +1,12 @@
 #include "widget.h"
-#include "../globals.h"
+#include <cstdint>
 
-void GetWidgetRect(unsigned int widgetId, CRect *pWidgetRect)
+void GetWidgetRect(uintptr_t pWidget, CRect *pWidgetRect)
 {
-    if (g_ppWidgets)
-    {
-        *pWidgetRect = *(CRect *)(g_ppWidgets[widgetId] + 0x20);
-    }
+    *pWidgetRect = *(CRect *)(pWidget + 0x20);
 }
 
-void GetWidgetAlpha(unsigned int widgetId, unsigned char *pAlpha)
+void GetWidgetAlpha(uintptr_t pWidget, unsigned char *pAlpha)
 {
-    if (g_ppWidgets)
-    {
-        *pAlpha = *(unsigned char *)(g_ppWidgets[widgetId] + 0x4C);
-    }
+    *pAlpha = *(unsigned char *)(pWidget + 0x4C);
 }

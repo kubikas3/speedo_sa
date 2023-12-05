@@ -1,3 +1,4 @@
 {
-  "ndkHome": "D:/android-ndk"
+  "ndkHome": "D:/android-ndk",
+  "appData": "/storage/emulated/0/Android/data/com.rockstargames.gtasa"
 }

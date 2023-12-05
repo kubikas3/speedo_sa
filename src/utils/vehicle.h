@@ -1,4 +1,5 @@
 #include "../game_sa/CVector.h"
+#include <cstdint>
 
 enum eVehicleType
 {

@@ -1,12 +1,10 @@
 #include <mod/amlmod.h>
 #include <mod/logger.h>
 #include <mod/config.h>
-#include "globals.h"
-#include "game_sa/common.h"
+#include "main.h"
+#include "game_sa/rw/rwcore.h"
 #include "game_sa/CRGBA.h"
 #include "game_sa/CRect.h"
-#include "game_sa/CSprite2d.h"
-#include "utils/texture.h"
 #include "utils/vehicle.h"
 #include "utils/widget.h"
 
@@ -18,22 +16,115 @@ END_DEPLIST()
 
 NEEDGAME(com.rockstargames.gtasa)
 
-const unsigned int RADAR_WIDGET_ID = 161;
-const float PI = 3.141592653589793f;
-const float SPEEDOMETER_MULTIPLIER = 150.0f / 250.0f; // arc angle / max value
+void Setup2DVertex(RwOpenGLVertex &vertex, float x, float y, float u, float v, RwUInt32 color)
+{
+    vertex.x = x;
+    vertex.y = y;
+    vertex.z = *NearScreenZ + 0.0001f;
+    vertex.u = u;
+    vertex.v = v;
+    vertex.rhw = *RecipNearClip;
+    vertex.emissiveColor = color;
+}
 
-CSprite2d *pDialSprite;
-CSprite2d *pArrowSprite;
+RwTexture *LoadTextureFromPNG(const char *path, const char *name)
+{
+    char file[512];
+    int w, h, d, f;
+    RwTexture *pTexture = nullptr;
+
+    sprintf(file, "%s/%s.png", path, name);
+
+    RwImage *pImage = RtPNGImageRead(file);
+
+    if (!pImage)
+    {
+        logger->Error("Failed to read %s image", name);
+    }
+
+    RwImageFindRasterFormat(pImage, rwRASTERTYPETEXTURE, &w, &h, &d, &f);
+    RwRaster *pRaster = RwRasterCreate(w, h, d, f);
+
+    if (!pRaster)
+    {
+        logger->Error("Failed to create raster for %s", name);
+    }
+
+    RwRasterSetFromImage(pRaster, pImage);
+    pTexture = RwTextureCreate(pRaster);
+
+    if (!pTexture)
+    {
+        logger->Error("Failed to create texture from %s", name);
+    }
+
+    RwTextureSetName(pTexture, name);
+
+    if ((pTexture->raster->cFormat & 0x80) == 0)
+        RwTextureSetFilterMode(pTexture, rwFILTERLINEAR);
+    else
+        RwTextureSetFilterMode(pTexture, rwFILTERLINEARMIPLINEAR);
+
+    RwTextureSetAddressing(pTexture, rwTEXTUREADDRESSWRAP);
+
+    RwImageDestroy(pImage);
+
+    return pTexture;
+}
+
+void RotateVertices(RwOpenGLVertex *pVertices, int numVertices, float angle, float cx, float cy)
+{
+    float c = cosf(angle);
+    float s = sinf(angle);
+
+    for (int i = 0; i < numVertices; i++)
+    {
+        float dx = pVertices[i].x - cx;
+        float dy = pVertices[i].y - cy;
+        pVertices[i].x = dx * c - dy * s + cx;
+        pVertices[i].y = dx * s + dy * c + cy;
+    }
+}
+
+void DrawTexture(RwTexture *pTexture, RwUInt32 color, float x, float y, float width, float height, float angle = 0)
+{
+    float x2 = x + width,
+          y2 = y + height;
+
+    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pTexture->raster);
+
+    RwOpenGLVertex vertices[4];
+    Setup2DVertex(vertices[0], x, y, 0.0f, 0.0f, color);
+    Setup2DVertex(vertices[1], x, y2, 0.0f, 1.0f, color);
+    Setup2DVertex(vertices[2], x2, y2, 1.0f, 1.0f, color);
+    Setup2DVertex(vertices[3], x2, y, 1.0f, 0.0f, color);
+
+    if (angle != 0.0f)
+    {
+        RotateVertices(vertices, 4, angle, x + width / 2, y + height / 2);
+    }
+
+    RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, vertices, 4);
+    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, 0);
+}
 
 DECL_HOOK(void, RadarLoadTextures, void *self)
 {
     logger->Info("Loading sprites");
 
-    pDialSprite = new CSprite2d;
-    pDialSprite->m_pRwTexture = LoadTextureFromPNG("texture/speedo", "sspeed");
+    pDialTexture = LoadTextureFromPNG("texture/speedo", "sspeed");
 
-    pArrowSprite = new CSprite2d;
-    pArrowSprite->m_pRwTexture = LoadTextureFromPNG("texture/speedo", "sarrow");
+    if (!pDialTexture)
+    {
+        logger->Error("Failed to load sspeed texture");
+    }
+
+    pArrowTexture = LoadTextureFromPNG("texture/speedo", "sarrow");
+
+    if (!pArrowTexture)
+    {
+        logger->Error("Failed to load sarrow texture");
+    }
 
     logger->Info("Sprites loaded successfully");
 
@@ -59,7 +150,7 @@ DECL_HOOK(void, DrawMap, void *self)
             float angle = SPEEDOMETER_MULTIPLIER * speedKmph / 180 * PI;
 
             CRect radarRect;
-            GetWidgetRect(RADAR_WIDGET_ID, &radarRect);
+            GetWidgetRect(ppWidgets[RADAR_WIDGET_ID], &radarRect);
 
             float radarWidth = radarRect.right - radarRect.left;
             float radarHeight = radarRect.bottom - radarRect.top;
@@ -69,10 +160,11 @@ DECL_HOOK(void, DrawMap, void *self)
             float y = radarRect.top + (radarHeight - speedoHeight) / 2;
 
             CRGBA color(255, 255, 255, 255);
-            GetWidgetAlpha(RADAR_WIDGET_ID, &color.a);
+            GetWidgetAlpha(ppWidgets[RADAR_WIDGET_ID], &color.a);
+            RwInt32 colorInt = color.ToIntARGB();
 
-            pDialSprite->Draw(x, y, speedoWidth, speedoHeight, color);
-            pArrowSprite->Draw(x, y, speedoWidth, speedoHeight, -angle, 0.5f, 0.5f, color);
+            DrawTexture(pDialTexture, colorInt, x, y, speedoWidth, speedoHeight);
+            DrawTexture(pArrowTexture, colorInt, x, y, speedoWidth, speedoHeight, -angle);
         }
     }
 
@@ -83,14 +175,14 @@ DECL_HOOK(void, RadarShutdown, void *self)
 {
     logger->Info("Unloading sprites");
 
-    if (pDialSprite)
+    if (pDialTexture)
     {
-        pDialSprite->Delete();
+        RwTextureDestroy(pDialTexture);
     }
 
-    if (pArrowSprite)
+    if (pArrowTexture)
     {
-        pArrowSprite->Delete();
+        RwTextureDestroy(pArrowTexture);
     }
 
     logger->Info("Sprites unloaded successfully");
@@ -101,28 +193,48 @@ DECL_HOOK(void, RadarShutdown, void *self)
 extern "C" void OnModLoad()
 {
     logger->SetTag("Speedo");
-    g_pLibGTASA = aml->GetLib("libGTASA.so");
-    g_hLibGTASA = aml->GetLibHandle("libGTASA.so");
-    void *pLibSaUtils = aml->GetLibHandle("libSAUtils.so");
+    void *hLibGTASA = aml->GetLibHandle("libGTASA.so");
+    void *hLibSAUtils = aml->GetLibHandle("libSAUtils.so");
 
-    if (g_pLibGTASA)
+    if (hLibGTASA)
     {
         logger->Info("Speedo mod is loaded!");
 
-        if (pLibSaUtils)
+        if (hLibSAUtils)
         {
             logger->Info("Using SAUtils widgets pointer");
-            SET_TO(g_ppWidgets, aml->GetSym(pLibSaUtils, "pNewWidgets"));
+            SET_TO(ppWidgets, aml->GetSym(hLibSAUtils, "pNewWidgets"));
         }
         else
         {
             logger->Info("Using default widgets pointer");
-            SET_TO(g_ppWidgets, aml->GetSym(g_hLibGTASA, "_ZN15CTouchInterface10m_pWidgetsE"));
+            SET_TO(ppWidgets, aml->GetSym(hLibGTASA, "_ZN15CTouchInterface10m_pWidgetsE"));
         }
 
-        HOOK(RadarLoadTextures, aml->GetSym(g_hLibGTASA, "_ZN6CRadar12LoadTexturesEv"));
-        HOOK(DrawMap, aml->GetSym(g_hLibGTASA, "_ZN6CRadar7DrawMapEv"));
-        HOOK(RadarShutdown, aml->GetSym(g_hLibGTASA, "_ZN6CRadar8ShutdownEv"));
+        SET_TO(FindPlayerVehicle, aml->GetSym(hLibGTASA, "_Z17FindPlayerVehicleib"));
+
+        SET_TO(NearScreenZ, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11NearScreenZE"));
+        SET_TO(RecipNearClip, aml->GetSym(hLibGTASA, "_ZN9CSprite2d13RecipNearClipE"));
+
+        // SET_TO(maVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d10maVerticesE"));
+        // SET_TO(SetVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11SetVerticesEP14RwOpenGLVertexRK5CRectRK5CRGBAS7_S7_S7_ffffffff"));
+
+        SET_TO(RwRenderStateSet, aml->GetSym(hLibGTASA, "_Z16RwRenderStateSet13RwRenderStatePv"));
+        SET_TO(RwIm2DRenderPrimitive, aml->GetSym(hLibGTASA, "_Z28RwIm2DRenderPrimitive_BUGFIX15RwPrimitiveTypeP14RwOpenGLVertexi"));
+
+        // Load PNG
+        SET_TO(RtPNGImageRead, aml->GetSym(hLibGTASA, "_Z14RtPNGImageReadPKc"));
+        SET_TO(RwImageFindRasterFormat, aml->GetSym(hLibGTASA, "_Z23RwImageFindRasterFormatP7RwImageiPiS1_S1_S1_"));
+        SET_TO(RwRasterCreate, aml->GetSym(hLibGTASA, "_Z14RwRasterCreateiiii"));
+        SET_TO(RwRasterSetFromImage, aml->GetSym(hLibGTASA, "_Z20RwRasterSetFromImageP8RwRasterP7RwImage"));
+        SET_TO(RwImageDestroy, aml->GetSym(hLibGTASA, "_Z14RwImageDestroyP7RwImage"));
+        SET_TO(RwTextureCreate, aml->GetSym(hLibGTASA, "_Z15RwTextureCreateP8RwRaster"));
+        SET_TO(RwTextureDestroy, aml->GetSym(hLibGTASA, "_Z16RwTextureDestroyP9RwTexture"));
+        SET_TO(RwTextureSetName, aml->GetSym(hLibGTASA, "_Z16RwTextureSetNameP9RwTexturePKc"));
+
+        HOOK(RadarLoadTextures, aml->GetSym(hLibGTASA, "_ZN6CRadar12LoadTexturesEv"));
+        HOOK(DrawMap, aml->GetSym(hLibGTASA, "_ZN6CRadar7DrawMapEv"));
+        HOOK(RadarShutdown, aml->GetSym(hLibGTASA, "_ZN6CRadar8ShutdownEv"));
     }
     else
     {
