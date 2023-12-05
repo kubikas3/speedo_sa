@@ -37,11 +37,11 @@
     {
       "label": "push",
       "type": "shell",
-      "command": "adb",
+      "command": "echo Pushing to ${config:appData}... & adb",
       "args": [
         "push",
         "build/libs/armeabi-v7a/libSpeedo.so",
-        "/storage/emulated/0/Android/data/com.rockstargames.gtasa/mods"
+        "${config:appData}/mods"
       ],
       "presentation": {
         "echo": false,
@@ -49,12 +49,12 @@
       }
     },
     {
-      "label": "clean build and push",
+      "label": "build and push",
       "type": "shell",
       "group": { "kind": "build", "isDefault": true },
       "command": "echo Done",
       "dependsOrder": "sequence",
-      "dependsOn": ["clean", "build", "push"],
+      "dependsOn": ["build", "push"],
       "presentation": {
         "echo": false,
         "showReuseMessage": false

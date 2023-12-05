@@ -1,4 +1,5 @@
 #include "CVector.h"
+#include <cmath>
 
 CVector::CVector() {}
 
