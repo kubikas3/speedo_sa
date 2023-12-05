@@ -1,16 +1,18 @@
 #include <cstdint>
+#include <mod/amlmod.h>
+#include <mod/logger.h>
+#include <mod/config.h>
 #include "game_sa/rw/rwcore.h"
+#include "game_sa/CRect.h"
+#include "game_sa/CRGBA.h"
+#include "utils/vehicle.h"
+#include "utils/widget.h"
 
 uintptr_t *ppWidgets = 0;
-int (*FindPlayerVehicle)(int playerId, bool unknown);
+uintptr_t (*FindPlayerVehicle)(int playerId, bool remoteVehicle);
 
-// RenderWare
-float *NearScreenZ;
-float *RecipNearClip;
-
-// RwOpenGLVertex *maVertices;
-// void (*SetVertices)(CRect const &posn, CRGBA const &color1, CRGBA const &color2, CRGBA const &color3, CRGBA const &color4, float u1, float v1, float u2, float v2, float u3, float v3, float u4, float v4);
-
+RwOpenGLVertex *maVertices;
+void (*SetVertices)(int number, float *pVertices, float *pTcs, CRGBA const &color);
 void (*RwRenderStateSet)(RwRenderState, void *);
 void (*RwIm2DRenderPrimitive)(RwPrimitiveType primType, RwOpenGLVertex *vertices, int numVertices);
 
@@ -28,5 +30,5 @@ const unsigned int RADAR_WIDGET_ID = 161;
 const float PI = 3.141592653589793f;
 const float SPEEDOMETER_MULTIPLIER = 150.0f / 250.0f; // arc angle / max value
 
-RwTexture *pDialTexture;
-RwTexture *pArrowTexture;
+RwTexture *pDialTexture = nullptr;
+RwTexture *pArrowTexture = nullptr;

@@ -1,12 +1,4 @@
-#include <mod/amlmod.h>
-#include <mod/logger.h>
-#include <mod/config.h>
 #include "main.h"
-#include "game_sa/rw/rwcore.h"
-#include "game_sa/CRGBA.h"
-#include "game_sa/CRect.h"
-#include "utils/vehicle.h"
-#include "utils/widget.h"
 
 MYMOD(net.kubikas3.speedo, Speedo, 1.3, kubikas3)
 
@@ -15,17 +7,6 @@ ADD_DEPENDENCY_VER(net.rusjj.aml, 1.1)
 END_DEPLIST()
 
 NEEDGAME(com.rockstargames.gtasa)
-
-void Setup2DVertex(RwOpenGLVertex &vertex, float x, float y, float u, float v, RwUInt32 color)
-{
-    vertex.x = x;
-    vertex.y = y;
-    vertex.z = *NearScreenZ + 0.0001f;
-    vertex.u = u;
-    vertex.v = v;
-    vertex.rhw = *RecipNearClip;
-    vertex.emissiveColor = color;
-}
 
 RwTexture *LoadTextureFromPNG(const char *path, const char *name)
 {
@@ -81,30 +62,38 @@ void RotateVertices(RwOpenGLVertex *pVertices, int numVertices, float angle, flo
     {
         float dx = pVertices[i].x - cx;
         float dy = pVertices[i].y - cy;
+
         pVertices[i].x = dx * c - dy * s + cx;
         pVertices[i].y = dx * s + dy * c + cy;
     }
 }
 
-void DrawTexture(RwTexture *pTexture, RwUInt32 color, float x, float y, float width, float height, float angle = 0)
+void DrawTexture(RwTexture *pTexture, CRGBA const &color, float x, float y, float width, float height, float angle = 0)
 {
     float x2 = x + width,
           y2 = y + height;
 
-    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pTexture->raster);
+    float vertices[8] = {
+        x, y,
+        x, y2,
+        x2, y2,
+        x2, y};
 
-    RwOpenGLVertex vertices[4];
-    Setup2DVertex(vertices[0], x, y, 0.0f, 0.0f, color);
-    Setup2DVertex(vertices[1], x, y2, 0.0f, 1.0f, color);
-    Setup2DVertex(vertices[2], x2, y2, 1.0f, 1.0f, color);
-    Setup2DVertex(vertices[3], x2, y, 1.0f, 0.0f, color);
+    float tcs[8] = {
+        0.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f};
+
+    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pTexture->raster);
+    SetVertices(4, vertices, tcs, color);
 
     if (angle != 0.0f)
     {
-        RotateVertices(vertices, 4, angle, x + width / 2, y + height / 2);
+        RotateVertices(maVertices, 4, angle, x + width / 2, y + height / 2);
     }
 
-    RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, vertices, 4);
+    RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, maVertices, 4);
     RwRenderStateSet(rwRENDERSTATETEXTURERASTER, 0);
 }
 
@@ -161,10 +150,9 @@ DECL_HOOK(void, DrawMap, void *self)
 
             CRGBA color(255, 255, 255, 255);
             GetWidgetAlpha(ppWidgets[HORN_WIDGET_ID], &color.alpha);
-            RwInt32 colorInt = color.ToIntARGB();
 
-            DrawTexture(pDialTexture, colorInt, x, y, speedoWidth, speedoHeight);
-            DrawTexture(pArrowTexture, colorInt, x, y, speedoWidth, speedoHeight, -angle);
+            DrawTexture(pDialTexture, color, x, y, speedoWidth, speedoHeight);
+            DrawTexture(pArrowTexture, color, x, y, speedoWidth, speedoHeight, -angle);
         }
     }
 
@@ -213,12 +201,11 @@ extern "C" void OnModLoad()
 
         SET_TO(FindPlayerVehicle, aml->GetSym(hLibGTASA, "_Z17FindPlayerVehicleib"));
 
-        SET_TO(NearScreenZ, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11NearScreenZE"));
-        SET_TO(RecipNearClip, aml->GetSym(hLibGTASA, "_ZN9CSprite2d13RecipNearClipE"));
+        // CSprite2d
+        SET_TO(maVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d10maVerticesE"));
+        SET_TO(SetVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11SetVerticesEiPfS0_RK5CRGBA"));
 
-        // SET_TO(maVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d10maVerticesE"));
-        // SET_TO(SetVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11SetVerticesEP14RwOpenGLVertexRK5CRectRK5CRGBAS7_S7_S7_ffffffff"));
-
+        // RenderWare
         SET_TO(RwRenderStateSet, aml->GetSym(hLibGTASA, "_Z16RwRenderStateSet13RwRenderStatePv"));
         SET_TO(RwIm2DRenderPrimitive, aml->GetSym(hLibGTASA, "_Z28RwIm2DRenderPrimitive_BUGFIX15RwPrimitiveTypeP14RwOpenGLVertexi"));
 
