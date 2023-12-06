@@ -68,25 +68,19 @@ void RotateVertices(RwOpenGLVertex *pVertices, int numVertices, float angle, flo
     }
 }
 
+void SetVerticesFix(RwIm2DVertex *pVerts, CRect const &rect,
+                    CRGBA const &topLeftColor, CRGBA const &topRightColor, CRGBA const &bottomLeftColor, CRGBA const &bottomRightColor,
+                    float tu1, float tv1, float tu2, float tv2, float tu3, float tv3, float tu4, float tv4)
+{
+    SetVertices(pVerts, rect, bottomLeftColor, bottomRightColor, topLeftColor, topRightColor, tu1, tv1, tu2, tv2, tu4, tv4, tu3, tv3);
+}
+
 void DrawTexture(RwTexture *pTexture, CRGBA const &color, float x, float y, float width, float height, float angle = 0)
 {
-    float x2 = x + width,
-          y2 = y + height;
-
-    float vertices[8] = {
-        x, y,
-        x, y2,
-        x2, y2,
-        x2, y};
-
-    float tcs[8] = {
-        0.0f, 0.0f,
-        0.0f, 1.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f};
+    CRect rect(x, y, x + width, y + height);
 
     RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pTexture->raster);
-    SetVertices(4, vertices, tcs, color);
+    SetVerticesFix(maVertices, rect, color, color, color, color, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
 
     if (angle != 0.0f)
     {
@@ -180,7 +174,7 @@ DECL_HOOK(void, RadarShutdown, void *self)
 
 extern "C" void OnModLoad()
 {
-    logger->SetTag("Speedo");
+    logger->SetTag("SpeedoSA");
     void *hLibGTASA = aml->GetLibHandle("libGTASA.so");
     void *hLibSAUtils = aml->GetLibHandle("libSAUtils.so");
 
@@ -203,7 +197,7 @@ extern "C" void OnModLoad()
 
         // CSprite2d
         SET_TO(maVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d10maVerticesE"));
-        SET_TO(SetVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11SetVerticesEiPfS0_RK5CRGBA"));
+        SET_TO(SetVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11SetVerticesEP14RwOpenGLVertexRK5CRectRK5CRGBAS7_S7_S7_ffffffff"));
 
         // RenderWare
         SET_TO(RwRenderStateSet, aml->GetSym(hLibGTASA, "_Z16RwRenderStateSet13RwRenderStatePv"));
@@ -219,6 +213,7 @@ extern "C" void OnModLoad()
         SET_TO(RwTextureDestroy, aml->GetSym(hLibGTASA, "_Z16RwTextureDestroyP9RwTexture"));
         SET_TO(RwTextureSetName, aml->GetSym(hLibGTASA, "_Z16RwTextureSetNameP9RwTexturePKc"));
 
+        // Radar Hooks
         HOOK(RadarLoadTextures, aml->GetSym(hLibGTASA, "_ZN6CRadar12LoadTexturesEv"));
         HOOK(DrawMap, aml->GetSym(hLibGTASA, "_ZN6CRadar7DrawMapEv"));
         HOOK(RadarShutdown, aml->GetSym(hLibGTASA, "_ZN6CRadar8ShutdownEv"));

@@ -12,7 +12,9 @@ uintptr_t *ppWidgets = 0;
 uintptr_t (*FindPlayerVehicle)(int playerId, bool remoteVehicle);
 
 RwOpenGLVertex *maVertices;
-void (*SetVertices)(int number, float *pVertices, float *pTcs, CRGBA const &color);
+void (*SetVertices)(RwIm2DVertex *pVerts, CRect const &rect,
+                    CRGBA const &bottomLeftColor, CRGBA const &bottomRightColor, CRGBA const &topLeftColor, CRGBA const &topRightColor,
+                    float tu1, float tv1, float tu2, float tv2, float tu4, float tv4, float tu3, float tv3);
 void (*RwRenderStateSet)(RwRenderState, void *);
 void (*RwIm2DRenderPrimitive)(RwPrimitiveType primType, RwOpenGLVertex *vertices, int numVertices);
 
