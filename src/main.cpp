@@ -53,40 +53,46 @@ RwTexture *LoadTextureFromPNG(const char *path, const char *name)
     return pTexture;
 }
 
-void RotateVertices(RwOpenGLVertex *pVertices, int numVertices, float angle, float cx, float cy)
+void RotateVertices(float *pVertices, int numVertices, float angle, float cx, float cy)
 {
     float c = cosf(angle);
     float s = sinf(angle);
+    int lenVertices = numVertices * 2;
 
-    for (int i = 0; i < numVertices; i++)
+    for (int i = 0; i < lenVertices; i += 2)
     {
-        float dx = pVertices[i].x - cx;
-        float dy = pVertices[i].y - cy;
+        float dx = pVertices[i] - cx;
+        float dy = pVertices[i + 1] - cy;
 
-        pVertices[i].x = dx * c - dy * s + cx;
-        pVertices[i].y = dx * s + dy * c + cy;
+        pVertices[i] = dx * c - dy * s + cx;
+        pVertices[i + 1] = dx * s + dy * c + cy;
     }
-}
-
-void SetVerticesFix(RwIm2DVertex *pVerts, CRect const &rect,
-                    CRGBA const &topLeftColor, CRGBA const &topRightColor, CRGBA const &bottomLeftColor, CRGBA const &bottomRightColor,
-                    float tu1, float tv1, float tu2, float tv2, float tu3, float tv3, float tu4, float tv4)
-{
-    SetVertices(pVerts, rect, bottomLeftColor, bottomRightColor, topLeftColor, topRightColor, tu1, tv1, tu2, tv2, tu4, tv4, tu3, tv3);
 }
 
 void DrawTexture(RwTexture *pTexture, CRGBA const &color, float x, float y, float width, float height, float angle = 0)
 {
-    CRect rect(x, y, x + width, y + height);
+    float x2 = x + width,
+          y2 = y + height;
 
-    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pTexture->raster);
-    SetVerticesFix(maVertices, rect, color, color, color, color, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
+    float vertices[8] = {
+        x, y,
+        x, y2,
+        x2, y2,
+        x2, y};
+
+    float tcs[8] = {
+        0.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f};
 
     if (angle != 0.0f)
     {
-        RotateVertices(maVertices, 4, angle, x + width / 2, y + height / 2);
+        RotateVertices(vertices, 4, angle, x + width / 2, y + height / 2);
     }
 
+    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pTexture->raster);
+    SetVertices(4, vertices, tcs, color);
     RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, maVertices, 4);
     RwRenderStateSet(rwRENDERSTATETEXTURERASTER, 0);
 }
@@ -95,19 +101,14 @@ DECL_HOOK(void, RadarLoadTextures, void *self)
 {
     logger->Info("Loading sprites");
 
-    pDialTexture = LoadTextureFromPNG("texture/speedo", "sspeed");
+    const char *pDirectory = "texture/speedo";
 
-    if (!pDialTexture)
-    {
-        logger->Error("Failed to load sspeed texture");
-    }
+    pDialTexture = LoadTextureFromPNG(pDirectory, "sdial");
+    pNumbersTexture = LoadTextureFromPNG(pDirectory, "snum");
+    pArrowTexture = LoadTextureFromPNG(pDirectory, "sarrow");
 
-    pArrowTexture = LoadTextureFromPNG("texture/speedo", "sarrow");
-
-    if (!pArrowTexture)
-    {
-        logger->Error("Failed to load sarrow texture");
-    }
+    pGlowDialTexture = LoadTextureFromPNG(pDirectory, "gdial");
+    pGlowArrowTexture = LoadTextureFromPNG(pDirectory, "garrow");
 
     logger->Info("Sprites loaded successfully");
 
@@ -130,23 +131,81 @@ DECL_HOOK(void, DrawMap, void *self)
             GetVehicleSpeedVec(pVehicle, &speedVec);
 
             float speedKmph = speedVec.Magnitude() * 180;
-            float angle = SPEEDOMETER_MULTIPLIER * speedKmph / 180 * PI;
+            float angle = speedKmph / SPEEDOMETER_MAX_VALUE * SPEEDOMETER_ARC_ANGLE;
 
             CRect radarRect;
             GetWidgetScreenRect(ppWidgets[RADAR_WIDGET_ID], &radarRect);
 
             float radarWidth = radarRect.right - radarRect.left;
             float radarHeight = radarRect.bottom - radarRect.top;
-            float speedoWidth = radarWidth * 1.9f;
-            float speedoHeight = radarHeight * 1.9f;
+            float speedoWidth = (radarWidth) * 2.0f;
+            float speedoHeight = radarHeight * 2.0f;
             float x = radarRect.left + (radarWidth - speedoWidth) / 2;
             float y = radarRect.top + (radarHeight - speedoHeight) / 2;
 
-            CRGBA color(255, 255, 255, 255);
-            GetWidgetAlpha(ppWidgets[HORN_WIDGET_ID], &color.alpha);
+            unsigned char alpha = 255;
+            GetWidgetAlpha(ppWidgets[HORN_WIDGET_ID], &alpha);
 
-            DrawTexture(pDialTexture, color, x, y, speedoWidth, speedoHeight);
-            DrawTexture(pArrowTexture, color, x, y, speedoWidth, speedoHeight, -angle);
+            CRGBA black(0, 0, 0, alpha);
+            float nitroValue = 0;
+            GetVehicleNitroValue(pVehicle, &nitroValue);
+
+            RwTexture *pArrowTex = pArrowTexture;
+
+            if (nitroValue < 1)
+            {
+                RwTexture *pIndicatorTexture = pDialTexture;
+                CRGBA indicatorColor(152, 152, 152, alpha);
+
+                if (nitroValue < 0)
+                {
+                    nitroValue += 1;
+                    indicatorColor = CRGBA(115, 255, 250, alpha);
+                    pIndicatorTexture = pGlowDialTexture;
+                    pArrowTex = pGlowArrowTexture;
+                }
+
+                float tcs[8] = {
+                    256.0f / 512.0f, 256.0f / 512.0f,
+                    470.6997f / 512.0f, 116.5724f / 512.0f,
+                    437.0193f / 512.0f, 437.0193f / 512.0f,
+                    116.5724f / 512.0f, 470.6997f / 512.0f};
+                float angle = floorf(NITRO_INDICATOR_ANGLE * -nitroValue / SPEEDOMETER_GAP_ANGLE) * SPEEDOMETER_GAP_ANGLE;
+                RotateVertices(tcs, 4, angle, 0.5f, 0.5f);
+
+                float vertices[8];
+                for (int i = 0; i < 8; i += 2)
+                {
+                    vertices[i] = x + tcs[i] * speedoWidth;
+                    vertices[i + 1] = y + tcs[i + 1] * speedoHeight;
+                }
+
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pDialTexture->raster);
+                SetVertices(4, vertices, tcs, black);
+                RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, maVertices, 4);
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, 0);
+
+                RotateVertices(tcs, 4, NITRO_INDICATOR_ANGLE, 0.5f, 0.5f);
+                for (int i = 0; i < 8; i += 2)
+                {
+                    vertices[i] = x + tcs[i] * speedoWidth;
+                    vertices[i + 1] = y + tcs[i + 1] * speedoHeight;
+                }
+
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pIndicatorTexture->raster);
+                SetVertices(4, vertices, tcs, indicatorColor);
+                RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, maVertices, 4);
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, 0);
+            }
+            else
+            {
+                DrawTexture(pDialTexture, black, x, y, speedoWidth, speedoHeight);
+            }
+
+            CRGBA white(255, 255, 255, alpha);
+            DrawTexture(pNumbersTexture, white, x, y, speedoWidth, speedoHeight);
+            CRGBA red(255, 39, 44, alpha);
+            DrawTexture(pArrowTex, red, x, y, speedoWidth, speedoHeight, -angle);
         }
     }
 
@@ -197,7 +256,7 @@ extern "C" void OnModLoad()
 
         // CSprite2d
         SET_TO(maVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d10maVerticesE"));
-        SET_TO(SetVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11SetVerticesEP14RwOpenGLVertexRK5CRectRK5CRGBAS7_S7_S7_ffffffff"));
+        SET_TO(SetVertices, aml->GetSym(hLibGTASA, "_ZN9CSprite2d11SetVerticesEiPfS0_RK5CRGBA"));
 
         // RenderWare
         SET_TO(RwRenderStateSet, aml->GetSym(hLibGTASA, "_Z16RwRenderStateSet13RwRenderStatePv"));
