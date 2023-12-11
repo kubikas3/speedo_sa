@@ -19,3 +19,4 @@ enum eVehicleType
 
 void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeed);
 void GetVehicleSubClass(uintptr_t pVehicle, eVehicleType *pSubClass);
+void GetVehicleNitroValue(uintptr_t pVehicle, float *pNitroValue);

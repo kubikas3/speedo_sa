@@ -12,9 +12,7 @@ uintptr_t *ppWidgets = 0;
 uintptr_t (*FindPlayerVehicle)(int playerId, bool remoteVehicle);
 
 RwOpenGLVertex *maVertices;
-void (*SetVertices)(RwIm2DVertex *pVerts, CRect const &rect,
-                    CRGBA const &bottomLeftColor, CRGBA const &bottomRightColor, CRGBA const &topLeftColor, CRGBA const &topRightColor,
-                    float tu1, float tv1, float tu2, float tv2, float tu4, float tv4, float tu3, float tv3);
+void (*SetVertices)(int number, float *pVertices, float *pTcs, CRGBA const &color);
 void (*RwRenderStateSet)(RwRenderState, void *);
 void (*RwIm2DRenderPrimitive)(RwPrimitiveType primType, RwOpenGLVertex *vertices, int numVertices);
 
@@ -30,7 +28,14 @@ RwTexture *(*RwTextureSetName)(RwTexture *texture, char const *name);
 const unsigned int HORN_WIDGET_ID = 7;
 const unsigned int RADAR_WIDGET_ID = 161;
 const float PI = 3.141592653589793f;
-const float SPEEDOMETER_MULTIPLIER = 150.0f / 250.0f; // arc angle / max value
+const float SPEEDOMETER_MAX_VALUE = 250.0f;
+const float SPEEDOMETER_ARC_ANGLE = 150.0f / 180.0f * PI;
+const float SPEEDOMETER_TICK_COUNT = 25;
+const float SPEEDOMETER_GAP_ANGLE = SPEEDOMETER_ARC_ANGLE / SPEEDOMETER_TICK_COUNT;
+const float NITRO_INDICATOR_ANGLE = SPEEDOMETER_ARC_ANGLE + SPEEDOMETER_GAP_ANGLE;
 
 RwTexture *pDialTexture = nullptr;
+RwTexture *pNumbersTexture = nullptr;
 RwTexture *pArrowTexture = nullptr;
+RwTexture *pGlowDialTexture = nullptr;
+RwTexture *pGlowArrowTexture = nullptr;

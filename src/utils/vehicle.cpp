@@ -15,3 +15,11 @@ void GetVehicleSubClass(uintptr_t pVehicle, eVehicleType *pSubClass)
         *pSubClass = *(eVehicleType *)(pVehicle + 0x5A4);
     }
 }
+
+void GetVehicleNitroValue(uintptr_t pVehicle, float *pNitroValue)
+{
+    if (pVehicle)
+    {
+        *pNitroValue = *(float *)(pVehicle + 0x8B8);
+    }
+}
