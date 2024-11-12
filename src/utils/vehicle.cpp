@@ -1,10 +1,20 @@
 #include "vehicle.h"
 
-void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeed)
+#ifdef AML32
+const uintptr_t pVehicleSpeedVec = 0x48;
+const uintptr_t pVehicleSubClass = 0x5A4;
+const uintptr_t pVehicleNitro = 0x8B8;
+#else
+const uintptr_t pVehicleSpeedVec = 0x68;
+const uintptr_t pVehicleSubClass = 0x738;
+const uintptr_t pVehicleNitro = 0xAC0;
+#endif
+
+void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeedVec)
 {
     if (pVehicle)
     {
-        *pSpeed = *(CVector *)(pVehicle + 0x48);
+        *pSpeedVec = *(CVector *)(pVehicle + pVehicleSpeedVec);
     }
 }
 
@@ -12,7 +22,7 @@ void GetVehicleSubClass(uintptr_t pVehicle, eVehicleType *pSubClass)
 {
     if (pVehicle)
     {
-        *pSubClass = *(eVehicleType *)(pVehicle + 0x5A4);
+        *pSubClass = *(eVehicleType *)(pVehicle + pVehicleSubClass);
     }
 }
 
@@ -20,6 +30,6 @@ void GetVehicleNitroValue(uintptr_t pVehicle, float *pNitroValue)
 {
     if (pVehicle)
     {
-        *pNitroValue = *(float *)(pVehicle + 0x8B8);
+        *pNitroValue = *(float *)(pVehicle + pVehicleNitro);
     }
 }

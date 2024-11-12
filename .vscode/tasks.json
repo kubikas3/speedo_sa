@@ -35,13 +35,27 @@
       }
     },
     {
-      "label": "push",
+      "label": "push32",
       "type": "shell",
-      "command": "echo Pushing to ${config:appData}... & adb",
+      "command": "echo Pushing to ${config:appData32}... & adb",
       "args": [
         "push",
         "build/libs/armeabi-v7a/libSpeedo.so",
-        "${config:appData}/mods"
+        "${config:appData32}/mods"
+      ],
+      "presentation": {
+        "echo": false,
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "push64",
+      "type": "shell",
+      "command": "echo Pushing to ${config:appData64}... & adb",
+      "args": [
+        "push",
+        "build/libs/arm64-v8a/libSpeedo64.so",
+        "${config:appData64}/mods"
       ],
       "presentation": {
         "echo": false,
@@ -54,7 +68,7 @@
       "group": { "kind": "build", "isDefault": true },
       "command": "echo Done",
       "dependsOrder": "sequence",
-      "dependsOn": ["build", "push"],
+      "dependsOn": ["build", "push32", "push64"],
       "presentation": {
         "echo": false,
         "showReuseMessage": false

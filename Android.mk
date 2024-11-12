@@ -2,7 +2,11 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_CPP_EXTENSION := .cpp .cc
-LOCAL_MODULE    := Speedo
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+	LOCAL_MODULE := Speedo
+else
+	LOCAL_MODULE := Speedo64
+endif
 SRC_FILES := $(shell dir /b /s src\*.cpp)
 LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)\%,%,$(SRC_FILES))
 LOCAL_SRC_FILES += mod/logger.cpp mod/config.cpp

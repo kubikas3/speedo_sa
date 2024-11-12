@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <cstdlib>
+#include <string.h>
 #include <mod/amlmod.h>
 #include <mod/logger.h>
 #include <mod/config.h>
@@ -8,7 +10,13 @@
 #include "utils/vehicle.h"
 #include "utils/widget.h"
 
-uintptr_t *ppWidgets = 0;
+enum eMeasurementSystem
+{
+    METRIC,
+    IMPERIAL,
+};
+
+uintptr_t *ppWidgets = nullptr;
 uintptr_t (*FindPlayerVehicle)(int playerId, bool remoteVehicle);
 
 RwOpenGLVertex *maVertices;
@@ -27,12 +35,29 @@ RwTexture *(*RwTextureSetName)(RwTexture *texture, char const *name);
 
 const unsigned int HORN_WIDGET_ID = 7;
 const unsigned int RADAR_WIDGET_ID = 161;
-const float PI = 3.141592653589793f;
-const float SPEEDOMETER_MAX_VALUE = 250.0f;
-const float SPEEDOMETER_ARC_ANGLE = 150.0f / 180.0f * PI;
-const float SPEEDOMETER_TICK_COUNT = 25;
-const float SPEEDOMETER_GAP_ANGLE = SPEEDOMETER_ARC_ANGLE / SPEEDOMETER_TICK_COUNT;
-const float NITRO_INDICATOR_ANGLE = SPEEDOMETER_ARC_ANGLE + SPEEDOMETER_GAP_ANGLE;
+const float DEG_TO_RAD = 3.141592653589793f / 180.0f;
+
+float *pCfgPositionX = nullptr;
+float *pCfgPositionY = nullptr;
+float *pCfgSizeX = nullptr;
+float *pCfgSizeY = nullptr;
+float cfgOffsetX = 0.0f;
+float cfgOffsetY = 0.0f;
+float cfgScaleX = 2.0f;
+float cfgScaleY = 2.0f;
+
+unsigned int cfgDialTickCount = 25;
+float cfgDialMaxValue = 250.0f;
+float cfgDialArcAngle = 150.0f;
+float cfgNitroArcMaskStartAngle = 123.0f;
+float cfgNitroArcMaskEndAngle = -33.0f;
+eMeasurementSystem cfgMeasurementSystem = eMeasurementSystem::METRIC;
+
+rgba_t cfgDialColor(0, 0, 0);
+rgba_t cfgArrowColor(255, 39, 44);
+rgba_t cfgNumbersColor(255, 255, 255);
+rgba_t cfgNitroLoadingColor(152, 152, 152);
+rgba_t cfgNitroActiveColor(115, 255, 250);
 
 RwTexture *pDialTexture = nullptr;
 RwTexture *pNumbersTexture = nullptr;

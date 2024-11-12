@@ -1,5 +1,6 @@
-#include "../game_sa/CVector.h"
 #include <cstdint>
+#include <mod/amlmod.h>
+#include "../game_sa/CVector.h"
 
 enum eVehicleType
 {
@@ -17,6 +18,6 @@ enum eVehicleType
     VEHICLE_TRAILER
 };
 
-void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeed);
+void GetVehicleSpeedVec(uintptr_t pVehicle, CVector *pSpeedVec);
 void GetVehicleSubClass(uintptr_t pVehicle, eVehicleType *pSubClass);
 void GetVehicleNitroValue(uintptr_t pVehicle, float *pNitroValue);

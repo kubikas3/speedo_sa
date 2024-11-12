@@ -1,12 +1,19 @@
 #include "widget.h"
-#include <cstdint>
 
-void GetWidgetScreenRect(uintptr_t pWidget, CRect *pWidgetRect)
+#ifdef AML32
+const uintptr_t pWidgetRect = 0x20;
+const uintptr_t pWidgetAlpha = 0x4C;
+#else
+const uintptr_t pWidgetRect = 0x2C;
+const uintptr_t pWidgetAlpha = 0x58;
+#endif
+
+void GetWidgetScreenRect(uintptr_t pWidget, CRect *pRect)
 {
-    *pWidgetRect = *(CRect *)(pWidget + 0x20);
+    *pRect = *(CRect *)(pWidget + pWidgetRect);
 }
 
 void GetWidgetAlpha(uintptr_t pWidget, unsigned char *pAlpha)
 {
-    *pAlpha = *(unsigned char *)(pWidget + 0x4C);
+    *pAlpha = *(unsigned char *)(pWidget + pWidgetAlpha);
 }

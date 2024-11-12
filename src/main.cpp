@@ -1,9 +1,9 @@
 #include "main.h"
 
-MYMOD(net.kubikas3.speedo, Speedo, 1.3.1, kubikas3)
+MYMODCFG(net.kubikas3.speedo, Speedo, 1.5.0, kubikas3)
 
 BEGIN_DEPLIST()
-ADD_DEPENDENCY_VER(net.rusjj.aml, 1.1)
+ADD_DEPENDENCY_VER(net.rusjj.aml, 1.0.1)
 END_DEPLIST()
 
 NEEDGAME(com.rockstargames.gtasa)
@@ -88,7 +88,7 @@ void DrawTexture(RwTexture *pTexture, CRGBA const &color, float x, float y, floa
 
     if (angle != 0.0f)
     {
-        RotateVertices(vertices, 4, angle, x + width / 2, y + height / 2);
+        RotateVertices(vertices, 4, angle, x + width / 2.0f, y + height / 2.0f);
     }
 
     RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pTexture->raster);
@@ -127,85 +127,100 @@ DECL_HOOK(void, DrawMap, void *self)
         if (vehicleSubClass == VEHICLE_AUTOMOBILE || vehicleSubClass == VEHICLE_MTRUCK ||
             vehicleSubClass == VEHICLE_BIKE || vehicleSubClass == VEHICLE_QUAD)
         {
-            CVector speedVec;
-            GetVehicleSpeedVec(pVehicle, &speedVec);
-
-            float speedKmph = speedVec.Magnitude() * 180;
-            float angle = speedKmph / SPEEDOMETER_MAX_VALUE * SPEEDOMETER_ARC_ANGLE;
-
             CRect radarRect;
             GetWidgetScreenRect(ppWidgets[RADAR_WIDGET_ID], &radarRect);
-
             float radarWidth = radarRect.right - radarRect.left;
             float radarHeight = radarRect.bottom - radarRect.top;
-            float speedoWidth = (radarWidth) * 2.0f;
-            float speedoHeight = radarHeight * 2.0f;
-            float x = radarRect.left + (radarWidth - speedoWidth) / 2;
-            float y = radarRect.top + (radarHeight - speedoHeight) / 2;
+
+            float speedoWidth = ((pCfgSizeX == nullptr) ? radarWidth : *pCfgSizeX) * cfgScaleX;
+            float speedoHeight = ((pCfgSizeY == nullptr) ? radarHeight : *pCfgSizeY) * cfgScaleY;
+
+            float x = ((pCfgPositionX == nullptr) ? radarRect.left + (radarWidth - speedoWidth) / 2.0f : *pCfgPositionX) + cfgOffsetX;
+            float y = ((pCfgPositionY == nullptr) ? radarRect.top + (radarHeight - speedoHeight) / 2.0f : *pCfgPositionY) + cfgOffsetY;
 
             unsigned char alpha = 255;
             GetWidgetAlpha(ppWidgets[HORN_WIDGET_ID], &alpha);
+            float alphaNormalized = alpha / 255.0f;
 
-            CRGBA black(0, 0, 0, alpha);
-            float nitroValue = 0;
-            GetVehicleNitroValue(pVehicle, &nitroValue);
+            float nitroValue = 1.0f;
+            if (vehicleSubClass == VEHICLE_AUTOMOBILE)
+            {
+                GetVehicleNitroValue(pVehicle, &nitroValue);
+            }
 
             RwTexture *pArrowTex = pArrowTexture;
+            CRGBA colorDial(cfgDialColor.r, cfgDialColor.g, cfgDialColor.b, static_cast<unsigned char>(alphaNormalized * cfgDialColor.a));
 
-            if (nitroValue < 1)
+            if (nitroValue < 1.0f)
             {
                 RwTexture *pIndicatorTexture = pDialTexture;
-                CRGBA indicatorColor(152, 152, 152, alpha);
+                CRGBA nitroColor(cfgNitroLoadingColor.r, cfgNitroLoadingColor.g, cfgNitroLoadingColor.b, static_cast<unsigned char>(alphaNormalized * cfgNitroLoadingColor.a));
 
-                if (nitroValue < 0)
+                if (nitroValue < 0.0f)
                 {
-                    nitroValue += 1;
-                    indicatorColor = CRGBA(115, 255, 250, alpha);
+                    nitroValue += 1.0f;
+                    nitroColor = CRGBA(cfgNitroActiveColor.r, cfgNitroActiveColor.g, cfgNitroActiveColor.b, static_cast<unsigned char>(alphaNormalized * cfgNitroActiveColor.a));
                     pIndicatorTexture = pGlowDialTexture;
                     pArrowTex = pGlowArrowTexture;
                 }
 
-                float tcs[8] = {
-                    256.0f / 512.0f, 256.0f / 512.0f,
-                    470.6997f / 512.0f, 116.5724f / 512.0f,
-                    437.0193f / 512.0f, 437.0193f / 512.0f,
-                    116.5724f / 512.0f, 470.6997f / 512.0f};
-                float angle = floorf(NITRO_INDICATOR_ANGLE * -nitroValue / SPEEDOMETER_GAP_ANGLE) * SPEEDOMETER_GAP_ANGLE;
-                RotateVertices(tcs, 4, angle, 0.5f, 0.5f);
+                float tcs[12] = {0.5f, 0.5f};
+                float vertices[12];
+                float nitroTickCount = cfgDialTickCount / cfgDialArcAngle * abs(cfgNitroArcMaskEndAngle - cfgNitroArcMaskStartAngle);
+                float snappedNitroValue = ceilf(nitroValue * nitroTickCount) / nitroTickCount;
 
-                float vertices[8];
-                for (int i = 0; i < 8; i += 2)
+                for (int i = 0; i < 10; i += 2)
                 {
-                    vertices[i] = x + tcs[i] * speedoWidth;
-                    vertices[i + 1] = y + tcs[i + 1] * speedoHeight;
+                    float a = cfgNitroArcMaskStartAngle + (cfgNitroArcMaskEndAngle - cfgNitroArcMaskStartAngle) * (i / 8.0f) * snappedNitroValue;
+                    tcs[2 + i] = tcs[0] + cosf(a);
+                    tcs[3 + i] = tcs[1] + sinf(a);
                 }
 
-                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pDialTexture->raster);
-                SetVertices(4, vertices, tcs, black);
-                RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, maVertices, 4);
-                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, 0);
-
-                RotateVertices(tcs, 4, NITRO_INDICATOR_ANGLE, 0.5f, 0.5f);
-                for (int i = 0; i < 8; i += 2)
+                for (int i = 0; i < 12; i += 2)
                 {
                     vertices[i] = x + tcs[i] * speedoWidth;
                     vertices[i + 1] = y + tcs[i + 1] * speedoHeight;
                 }
 
                 RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pIndicatorTexture->raster);
-                SetVertices(4, vertices, tcs, indicatorColor);
-                RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, maVertices, 4);
-                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, 0);
+                SetVertices(6, vertices, tcs, nitroColor);
+                RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, maVertices, 6);
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, NULL);
+
+                for (int i = 0; i < 10; i += 2)
+                {
+                    float a = cfgNitroArcMaskEndAngle - (cfgNitroArcMaskEndAngle - cfgNitroArcMaskStartAngle) * (i / 8.0f) * (1.0f - snappedNitroValue);
+                    tcs[2 + i] = tcs[0] + cosf(a);
+                    tcs[3 + i] = tcs[1] + sinf(a);
+                }
+
+                for (int i = 0; i < 12; i += 2)
+                {
+                    vertices[i] = x + tcs[i] * speedoWidth;
+                    vertices[i + 1] = y + tcs[i + 1] * speedoHeight;
+                }
+
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pDialTexture->raster);
+                SetVertices(6, vertices, tcs, colorDial);
+                RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, maVertices, 6);
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, NULL);
             }
             else
             {
-                DrawTexture(pDialTexture, black, x, y, speedoWidth, speedoHeight);
+                DrawTexture(pDialTexture, colorDial, x, y, speedoWidth, speedoHeight);
             }
 
-            CRGBA white(255, 255, 255, alpha);
-            DrawTexture(pNumbersTexture, white, x, y, speedoWidth, speedoHeight);
-            CRGBA red(255, 39, 44, alpha);
-            DrawTexture(pArrowTex, red, x, y, speedoWidth, speedoHeight, -angle);
+            CRGBA colorNumbers(cfgNumbersColor.r, cfgNumbersColor.g, cfgNumbersColor.b, static_cast<unsigned char>(alphaNormalized * cfgNumbersColor.a));
+            DrawTexture(pNumbersTexture, colorNumbers, x, y, speedoWidth, speedoHeight);
+
+            CVector vehicleVelocity;
+            GetVehicleSpeedVec(pVehicle, &vehicleVelocity);
+
+            float vehicleSpeed = vehicleVelocity.Magnitude() * ((cfgMeasurementSystem == eMeasurementSystem::METRIC) ? 180.0f : 111.8468f);
+            float arrowAngle = vehicleSpeed / cfgDialMaxValue * cfgDialArcAngle;
+
+            CRGBA colorArrow(cfgArrowColor.r, cfgArrowColor.g, cfgArrowColor.b, static_cast<unsigned char>(alphaNormalized * cfgArrowColor.a));
+            DrawTexture(pArrowTex, colorArrow, x, y, speedoWidth, speedoHeight, -arrowAngle);
         }
     }
 
@@ -231,27 +246,74 @@ DECL_HOOK(void, RadarShutdown, void *self)
     return RadarShutdown(self);
 }
 
-extern "C" void OnModLoad()
+extern "C" void OnAllModsLoaded()
 {
     logger->SetTag("SpeedoSA");
+
+    const char *szCfgPositionX = cfg->GetString("PositionX", "auto", "Layout");
+    if (strcasecmp(szCfgPositionX, "auto"))
+    {
+        pCfgPositionX = new float;
+        *pCfgPositionX = strtof(szCfgPositionX, nullptr);
+    }
+
+    const char *szCfgPositionY = cfg->GetString("PositionY", "auto", "Layout");
+    if (strcasecmp(szCfgPositionY, "auto"))
+    {
+        pCfgPositionY = new float;
+        *pCfgPositionY = strtof(szCfgPositionY, nullptr);
+    }
+
+    const char *szCfgSizeX = cfg->GetString("SizeX", "auto", "Layout");
+    if (strcasecmp(szCfgSizeX, "auto"))
+    {
+        pCfgSizeX = new float;
+        *pCfgSizeX = strtof(szCfgSizeX, nullptr);
+    }
+
+    const char *szCfgSizeY = cfg->GetString("SizeY", "auto", "Layout");
+    if (strcasecmp(szCfgSizeY, "auto"))
+    {
+        pCfgSizeY = new float;
+        *pCfgSizeY = strtof(szCfgSizeY, nullptr);
+    }
+
+    cfgOffsetX = cfg->GetFloat("OffsetX", cfgOffsetX, "Layout");
+    cfgOffsetY = cfg->GetFloat("OffsetY", cfgOffsetY, "Layout");
+    cfgScaleX = cfg->GetFloat("ScaleX", cfgScaleX, "Layout");
+    cfgScaleY = cfg->GetFloat("ScaleY", cfgScaleY, "Layout");
+
+    cfgDialMaxValue = cfg->GetFloat("DialMaxValue", cfgDialMaxValue, "Display");
+    cfgDialTickCount = cfg->GetInt("DialTickCount", cfgDialTickCount, "Display");
+    cfgDialArcAngle = cfg->GetFloat("DialArcAngle", cfgDialArcAngle, "Display");
+    cfgDialArcAngle *= DEG_TO_RAD;
+    cfgNitroArcMaskStartAngle = cfg->GetFloat("NitroArcMaskStartAngle", cfgNitroArcMaskStartAngle, "Display");
+    cfgNitroArcMaskStartAngle *= DEG_TO_RAD;
+    cfgNitroArcMaskEndAngle = cfg->GetFloat("NitroArcMaskEndAngle", cfgNitroArcMaskEndAngle, "Display");
+    cfgNitroArcMaskEndAngle *= DEG_TO_RAD;
+
+    const char *szMeasurementSystem = cfg->GetString("MeasurementSystem", "metric", "Display");
+    if (strcasecmp(szMeasurementSystem, "metric"))
+    {
+        cfgMeasurementSystem = eMeasurementSystem::IMPERIAL;
+    }
+
+    cfgDialColor = cfg->GetColor("DialColor", cfgDialColor, "Palette");
+    cfgNumbersColor = cfg->GetColor("NumbersColor", cfgNumbersColor, "Palette");
+    cfgNitroLoadingColor = cfg->GetColor("NitroLoadingColor", cfgNitroLoadingColor, "Palette");
+    cfgNitroActiveColor = cfg->GetColor("NitroActiveColor", cfgNitroActiveColor, "Palette");
+    cfgArrowColor = cfg->GetColor("ArrowColor", cfgArrowColor, "Palette");
+
+    uintptr_t pLibGTASA = aml->GetLib("libGTASA.so");
     void *hLibGTASA = aml->GetLibHandle("libGTASA.so");
-    void *hLibSAUtils = aml->GetLibHandle("libSAUtils.so");
 
     if (hLibGTASA)
     {
-        logger->Info("Speedo mod is loaded!");
-
-        if (hLibSAUtils)
-        {
-            logger->Info("Using SAUtils widgets pointer");
-            SET_TO(ppWidgets, aml->GetSym(hLibSAUtils, "pNewWidgets"));
-        }
-        else
-        {
-            logger->Info("Using default widgets pointer");
-            SET_TO(ppWidgets, aml->GetSym(hLibGTASA, "_ZN15CTouchInterface10m_pWidgetsE"));
-        }
-
+#ifdef AML32
+        ppWidgets = *(uintptr_t **)(pLibGTASA + 0x67947C);
+#else
+        ppWidgets = *(uintptr_t **)(pLibGTASA + 0x850910);
+#endif
         SET_TO(FindPlayerVehicle, aml->GetSym(hLibGTASA, "_Z17FindPlayerVehicleib"));
 
         // CSprite2d
@@ -277,9 +339,27 @@ extern "C" void OnModLoad()
         HOOK(DrawMap, aml->GetSym(hLibGTASA, "_ZN6CRadar7DrawMapEv"));
         HOOK(RadarShutdown, aml->GetSym(hLibGTASA, "_ZN6CRadar8ShutdownEv"));
     }
-    else
+}
+
+extern "C" void OnModUnload()
+{
+    if (pCfgPositionX)
     {
-        logger->Error("Speedo mod is not loaded :(");
-        return;
+        delete pCfgPositionX;
+    }
+
+    if (pCfgPositionY)
+    {
+        delete pCfgPositionY;
+    }
+
+    if (pCfgSizeX)
+    {
+        delete pCfgSizeX;
+    }
+
+    if (pCfgSizeY)
+    {
+        delete pCfgSizeY;
     }
 }
